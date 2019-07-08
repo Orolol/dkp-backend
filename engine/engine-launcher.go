@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"dkp/utils"
+
 	"github.com/google/uuid"
-	"github.com/orolol/gogame/utils"
 	"github.com/zeromq/goczmq"
 )
 
@@ -26,20 +27,7 @@ func createGame(conf utils.GameConf, queue chan utils.GameMsg) utils.Game {
 	return game
 }
 
-func GameEvent(queue chan utils.GameMsg, game *utils.Game, player1, player2 *utils.PlayerInGame) {
-	// ActionMapping := map[string]interface{}{
-	// 	// "actionWarPropaganda":                    actionWarPropaganda,
-	// 	"buyForeignTanks": buyForeignTanks,
-	// 	// "actionCivConvertFactoryToHvyTankFact":   actionCivConvertFactoryToHvyTankFact,
-	// 	// "actionCivConvertFactoryToLightTankFact": actionCivConvertFactoryToLightTankFact,
-	// 	"emergencyRecruitment": emergencyRecruitment,
-	// 	"purgeSoldier":         purgeSoldier,
-	// }
-	// //fmt.Println("GAME EVENT ", game)
-	// keys := make([]string, 0, len(ActionMapping))
-	// for k := range ActionMapping {
-	// 	keys = append(keys, k)
-	// }
+func GameEvent(queue chan utils.GameMsg, game *utils.Game, player *utils.PlayerInGame) {
 
 	for msg := range queue {
 		var p *utils.PlayerInGame
