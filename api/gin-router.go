@@ -2,15 +2,29 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
-	"github.com/appleboy/gin-jwt"
+	jwt "github.com/appleboy/gin-jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
-	"github.com/orolol/gogame/utils"
+	"github.com/orolol/dkp-backend/utils"
 	"golang.org/x/crypto/bcrypt"
 )
+
+type login struct {
+	Username string `form:"username" json:"username" binding:"required"`
+	Password string `form:"password" json:"password" binding:"required"`
+}
+
+type User struct {
+	UserName  string
+	FirstName string
+	LastName  string
+}
+
+var identityKey = "id"
 
 func initRoutes() {
 	// Disable Console Color
@@ -18,52 +32,75 @@ func initRoutes() {
 
 	// Creates a gin r with default middleware:
 	// logger and recovery (crash-free) middleware
+
 	r := gin.Default()
 
 	r.Use(LiberalCORS)
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 
-	// the jwt middleware
-	authMiddleware := jwt.GinJWTMiddleware{
-		Realm:      "test zone",
-		Key:        []byte("super secret key"),
-		Timeout:    time.Hour,
-		MaxRefresh: time.Hour,
-		Authenticator: func(userId string, password string, c *gin.Context) (interface{}, bool) {
+	authMiddleware, err := jwt.New(&jwt.GinJWTMiddleware{
+		Realm:       "test zone",
+		Key:         []byte("super secret key"),
+		Timeout:     time.Hour,
+		MaxRefresh:  time.Hour,
+		IdentityKey: identityKey,
+		PayloadFunc: func(data interface{}) jwt.MapClaims {
+			if v, ok := data.(utils.AccountApi); ok {
+				return jwt.MapClaims{
+					identityKey: v.Login,
+				}
+			}
+			return jwt.MapClaims{}
+		},
+		IdentityHandler: func(c *gin.Context) interface{} {
+			claims := jwt.ExtractClaims(c)
+
+			var a *utils.AccountApi
+
+			if _, ok := claims[identityKey].(string); ok {
+
+				return claims[identityKey]
+			}
+			fmt.Println("OKCLAIMS")
+			return a
+		},
+		Authenticator: func(c *gin.Context) (interface{}, error) {
+			var loginVals login
+			if err := c.ShouldBind(&loginVals); err != nil {
+				return "", jwt.ErrMissingLoginValues
+			}
+			userID := loginVals.Username
+			password := loginVals.Password
+
 			var acc utils.Account
 			var accApi utils.AccountApi
 			db, _ := gorm.Open("mysql", ConnexionString)
-			db.First(&acc, "Login = ?", userId)
+			db.First(&acc, "Login = ?", userID)
 			errPass := bcrypt.CompareHashAndPassword([]byte(acc.Password), []byte(password))
 
 			if errPass != nil {
 				fmt.Println("Mauvais password", errPass, acc.Password, password)
-				c.String(http.StatusOK, "Bad password")
+				return nil, jwt.ErrFailedAuthentication
 			} else if acc.ID == 0 {
 				fmt.Println("Mauvais account")
-				c.String(http.StatusOK, "Bad password")
-			} else {
-				c.Status(http.StatusOK)
-
-				accApi.ID = acc.ID
-				accApi.Login = acc.Login
-				accApi.Name = acc.Name
-				accApi.ELO = acc.ELO
-				accApi.ProfilePic = acc.ProfilePic
-				accApi.Step = acc.Step
-
-				return accApi, true
+				return nil, jwt.ErrFailedAuthentication
 			}
 
-			return nil, false
+			accApi.ID = acc.ID
+			accApi.Login = acc.Login
+			return accApi, nil
 		},
 		Authorizator: func(user interface{}, c *gin.Context) bool {
-			if v, ok := user.(string); ok && v == "admin" {
-				return true
-			} else {
-				fmt.Println(v, ok)
-			}
+			// var acc utils.Account
+			// db, _ := gorm.Open("mysql", ConnexionString)
+			// db.First(&acc)
+
+			// if v, ok := user.(string); ok && v == acc.Login {
+			// 	return true
+			// } else {
+			// 	return false
+			// }
 
 			return true
 		},
@@ -73,23 +110,13 @@ func initRoutes() {
 				"message": message,
 			})
 		},
-
-		// TokenLookup is a string in the form of "<source>:<name>" that is used
-		// to extract token from the request.
-		// Optional. Default value "header:Authorization".
-		// Possible values:
-		// - "header:<name>"
-		// - "query:<name>"
-		// - "cookie:<name>"
-		TokenLookup: "header:Authorization",
-		// TokenLookup: "query:token",
-		// TokenLookup: "cookie:token",
-
-		// TokenHeadName is a string in the header. Default value is "Bearer"
+		TokenLookup:   "header: Authorization, query: token, cookie: jwt",
 		TokenHeadName: "Bearer",
+		TimeFunc:      time.Now,
+	})
 
-		// TimeFunc provides the current time. You can override it to use another time value. This is useful for testing or if your server uses a different time zone than your tokens.
-		TimeFunc: time.Now,
+	if err != nil {
+		log.Fatal("JWT Error:" + err.Error())
 	}
 
 	auth := r.Group("/auth")
@@ -98,22 +125,19 @@ func initRoutes() {
 	r.POST("/SignUp", SignUp)
 	r.GET("/GetTranslations/:language", GetTranslations)
 	r.GET("/GetInfos", GetInfos)
-	r.GET("/getCountries", getCountries)
 	r.GET("/GetPP", GetPP)
 	r.GET("/GetServerInfos", GetServerInfos)
-	r.GET("/GetNews", GetNews)
+	r.GET("/GetDungeons", GetDungeons)
 
 	auth.Use(authMiddleware.MiddlewareFunc())
 	{
 		auth.GET("/RefreshToken", authMiddleware.RefreshHandler)
 		auth.GET("/Index", Index)
 		auth.POST("/GetProfileInfos", GetProfileInfos)
-		auth.POST("/JoinGame", JoinGame)
 		auth.POST("/JoinGameAi", JoinGameAi)
+		auth.POST("/StartDungeon", StartDungeon)
 		auth.GET("/LeaveQueue", LeaveQueue)
 		auth.POST("/EditAccount", EditAccount)
-		auth.POST("/ChangePolicy", ChangePolicy)
-		auth.POST("/GetTechnology", GetTechnology)
 		auth.POST("/Actions", Actions)
 		auth.GET("/GetEnemyInfos/:id", GetEnemyInfos)
 

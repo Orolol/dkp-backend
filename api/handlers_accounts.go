@@ -9,7 +9,7 @@ import (
 	jwt "github.com/appleboy/gin-jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
-	"github.com/orolol/gogame/utils"
+	"github.com/orolol/dkp-backend/utils"
 )
 
 /*
@@ -150,7 +150,7 @@ func GetPP(c *gin.Context) {
 	c.JSON(http.StatusOK, list)
 }
 
-func GetNews(c *gin.Context) {
-	var list = utils.GetNews()
-	c.JSON(http.StatusOK, list)
-}
+// func GetNews(c *gin.Context) {
+// 	var list = utils.GetNews()
+// 	c.JSON(http.StatusOK, list)
+// }

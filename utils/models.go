@@ -11,29 +11,33 @@ type GameManager struct {
 
 //Game Game state
 type Game struct {
-	GameID      uuid.UUID
-	State       string
-	CurrentTurn int
-	Player      PlayerInGame
+	GameID             uuid.UUID
+	State              string
+	CurrentTurn        float64
+	Phase              int
+	Hour               int
+	Minute             int
+	Player             PlayerInGame
+	PendingEvent       []PlayerEvent
+	PendingQuest       []PlayerQuest
+	OngoingQuest       []PlayerQuest
+	OngoingDungeonRuns []DungeonRun
 }
 
 //PlayerInGame player ig
-type PlayerInGame struct {
-	PlayerID           int
-	Nick               string
-	LastOrders         []PlayerLastOrders
-	Modifiers          map[string]float32
-	Logs               []PlayerLog
-	CallbackEffects    []CallbackEffect
-	PlayerInformations map[string]*PlayerInformation
-}
+
+// type Status struct {
+// 	Description map[string]Translation
+// 	TimeSpent   int
+// 	Name        string
+// }
 
 type PlayerInformation struct {
 	Type        string
 	SubType     string
 	Name        string
 	Description string
-	Value       float32
+	Value       float64
 }
 
 type PlayerLog struct {
@@ -55,10 +59,7 @@ type GameMsg struct {
 	PlayerID int
 	Action   string
 	Type     string
-	Cooldown int
-	Value    float32
-	Effects  []Effect
-	Costs    []Cost
+	Values   []interface{}
 }
 
 type Translation struct {
@@ -78,8 +79,8 @@ type DisplayInfoCat struct {
 type DisplayInfos struct {
 	Name         string
 	Type         string
-	LowAlert     float32
-	VeryLowAlert float32
+	LowAlert     float64
+	VeryLowAlert float64
 	GrowthName   string
 	GrowthType   string
 	Display      int
@@ -102,78 +103,12 @@ type Configuration struct {
 	Connection_String string
 }
 
-//API type for action
-type PlayerActionOrderApi struct {
-	ID       string
-	Value    float32
-	PlayerID int
-	GameID   uuid.UUID
-}
-
-//SQL type for Actions
-type PlayerActionOrder struct {
-	Name         string `gorm:"not null;unique"`
-	ActionName   string
-	Constraints  []Constraint
-	Description  string
-	Costs        []Cost
-	Cooldown     int
-	Effects      []Effect
-	Type         string
-	SubType      string
-	Selector     string
-	BaseValue    float32
-	Restrictions []Restriction
-}
-
-type Effect struct {
-	ModifierType string
-	ModifierName string
-	Operator     string
-	Value        float32
-	Target       string
-	ActionName   string
-	ToolTipValue float32
-	Callbacks    []CallbackEffect
-}
-
-type CallbackEffect struct {
-	Constraints []Constraint
-	Effects     []Effect
-}
-
-type Cost struct {
-	Type  string
-	Value float32
-}
-
-type Constraint struct {
-	Type     string
-	Key      string
-	Value    string
-	Operator string
-}
-type Restriction struct {
-	Type     string
-	Key      string
-	Value    string
-	Operator string
-}
-
-type PlayerEvent struct {
-	Type        string
-	Description string
-	Constraints []Constraint
-	Effects     []Effect
-	ActionName  string
+type PlayerQuest struct {
+	From        OtherPlayer
+	Description map[string]Translation
 	Name        string
-	Weight      int
+	Constraints []Constraint
+	Success     []Effect
+	Failure     []Effect
+	Ignore      []Effect
 }
-
-// //Constraint Json type for constraint
-// type Constraint struct {
-// 	Tech   []string `json:tech`
-// 	Turn   int      `json:turn`
-// 	Policy []string `json:policy`
-// 	Action []string `json:action`
-// }

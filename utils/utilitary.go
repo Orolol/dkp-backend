@@ -1,5 +1,7 @@
 package utils
 
+import "reflect"
+
 // func updateOrCreateInfos(name string, player *PlayerInGame, value float32, v string, subtypeInfo string){
 // 	var found = false
 // 	if val, ok := player.PlayerInformations[name]; ok {
@@ -24,4 +26,8 @@ func Contains(s []string, e string) bool {
 		}
 	}
 	return false
+}
+
+func IsFunc(v interface{}) bool {
+	return reflect.TypeOf(v).Kind() == reflect.Func
 }

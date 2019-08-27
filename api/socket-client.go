@@ -76,7 +76,7 @@ func (c *Client) readPump() {
 			}
 			break
 		}
-		fmt.Println("Client Reading msg ", c)
+
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		//c.hub.broadcast <- message
 	}
@@ -135,7 +135,9 @@ func (c *Client) writePump() {
 
 // serveWs handles websocket requests from the peer.
 func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
+
 	if err != nil {
 		log.Println(err)
 		return
